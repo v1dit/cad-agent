@@ -8,7 +8,7 @@ This first version is intentionally small and structural. It models the core arc
 text -> parse -> validate -> adapter -> return scad
 ```
 
-The parser is currently a placeholder and returns a hardcoded hollow-cylinder design tree. That keeps the current version deterministic while preserving the boundaries needed for future LLM parsing, correction loops, and backend execution.
+The parser is currently a placeholder and maps a few fixed prompt patterns into deterministic design trees. That keeps the current version predictable while preserving the boundaries needed for future LLM parsing, correction loops, and backend execution.
 
 ## Why this project
 
@@ -32,9 +32,13 @@ cad-agent/
 │   └── routes/
 │       └── pipeline.py
 ├── examples/
-│   └── test_prompt.txt
+│   ├── sphere_prompt.txt
+│   ├── test_prompt.txt
+│   └── union_prompt.txt
 ├── scripts/
 │   └── run_pipeline.py
+├── tests/
+│   └── test_ir_extensibility.py
 └── requirements.txt
 ```
 
@@ -60,6 +64,19 @@ Run the CLI smoke test:
 python3 scripts/run_pipeline.py
 ```
 
+Run alternate deterministic demos:
+
+```bash
+python3 scripts/run_pipeline.py examples/sphere_prompt.txt
+python3 scripts/run_pipeline.py examples/union_prompt.txt
+```
+
+Run the test suite:
+
+```bash
+python3 -m unittest discover -s tests
+```
+
 ## API
 
 Health check:
@@ -68,7 +85,7 @@ Health check:
 curl http://127.0.0.1:8000/
 ```
 
-Pipeline request:
+Pipeline request for a hollow cylinder:
 
 ```bash
 curl -X POST http://127.0.0.1:8000/run \
@@ -117,12 +134,35 @@ The current universal design spec supports two node types:
 - `primitive` for engine-agnostic geometry primitives
 - `operation` for boolean composition
 
-The current placeholder prompt resolves to this shape:
+The current milestone supports:
+
+- primitives: `cylinder`, `sphere`
+- operations: `difference`, `union`
+
+The placeholder parser currently recognizes a few deterministic demos:
+
+- prompts containing `sphere` -> sphere primitive
+- prompts containing `union` -> nested union demo
+- all other prompts -> hollow cylinder difference tree
+
+The default prompt resolves to this shape:
 
 ```text
 difference(
   cylinder(radius=5, height=10),
   cylinder(radius=3, height=10)
+)
+```
+
+A union demo resolves to:
+
+```text
+union(
+  difference(
+    cylinder(radius=5, height=10),
+    cylinder(radius=3, height=10)
+  ),
+  sphere(radius=4)
 )
 ```
 
@@ -134,11 +174,11 @@ OpenSCAD is the only backend today, but it is now isolated behind an adapter ins
 - No correction loop
 - No CAD engine execution
 - No multi-agent orchestration
-- Only cylinder primitives and `difference` are supported in the abstract spec
+- No transforms, assemblies, or engine selection yet
 
 ## Next Steps
 
 - Replace the parser with structured LLM output
-- Expand the abstract spec language
+- Add more primitives and boolean operations carefully
 - Introduce a correction loop
 - Add OpenSCAD execution and more backends
