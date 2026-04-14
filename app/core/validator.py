@@ -1,5 +1,4 @@
 from app.models.schema import (
-    CadSpec,
     DesignNode,
     OperationNode,
     PrimitiveNode,
@@ -7,25 +6,9 @@ from app.models.schema import (
 )
 
 
-def validate_spec(spec: CadSpec | DesignNode) -> ValidationResult:
-    if isinstance(spec, CadSpec):
-        return _validate_legacy_spec(spec)
-
+def validate_spec(spec: DesignNode) -> ValidationResult:
     errors: list[str] = []
     _validate_design_node(spec, errors)
-    return ValidationResult(valid=len(errors) == 0, errors=errors)
-
-
-def _validate_legacy_spec(spec: CadSpec) -> ValidationResult:
-    errors: list[str] = []
-
-    if spec.shape == "cylinder":
-        if spec.inner_radius >= spec.outer_radius:
-            errors.append("inner radius must be smaller than outer radius")
-
-        if spec.height <= 0:
-            errors.append("height must be positive")
-
     return ValidationResult(valid=len(errors) == 0, errors=errors)
 
 
