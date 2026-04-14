@@ -1,6 +1,8 @@
-from typing import Literal, Union
+from __future__ import annotations
 
-from pydantic import BaseModel
+from typing import Annotated, Literal, Union
+
+from pydantic import BaseModel, Field
 
 
 class PromptRequest(BaseModel):
@@ -14,6 +16,30 @@ class CadSpec(BaseModel):
     height: float
 
 
+class CylinderParameters(BaseModel):
+    radius: float
+    height: float
+
+
+class PrimitiveNode(BaseModel):
+    type: Literal["primitive"]
+    primitive: Literal["cylinder"]
+    parameters: CylinderParameters
+    operation: Literal["add"] = "add"
+
+
+class OperationNode(BaseModel):
+    type: Literal["operation"]
+    op: Literal["difference"]
+    children: list["DesignNode"]
+
+
+DesignNode = Annotated[Union[PrimitiveNode, OperationNode], Field(discriminator="type")]
+SpecModel = Union[CadSpec, DesignNode]
+
+OperationNode.model_rebuild()
+
+
 class ValidationResult(BaseModel):
     valid: bool
     errors: list[str]
@@ -21,14 +47,15 @@ class ValidationResult(BaseModel):
 
 class PipelineSuccessResponse(BaseModel):
     stage: Literal["success"]
-    spec: CadSpec
+    engine: Literal["openscad"] = "openscad"
+    spec: SpecModel
     scad: str
 
 
 class PipelineFailureResponse(BaseModel):
     stage: Literal["validation_failed"]
     errors: list[str]
-    spec: CadSpec
+    spec: SpecModel
 
 
 PipelineResponse = Union[PipelineSuccessResponse, PipelineFailureResponse]
