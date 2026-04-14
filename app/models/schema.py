@@ -9,13 +9,6 @@ class PromptRequest(BaseModel):
     text: str
 
 
-class CadSpec(BaseModel):
-    shape: Literal["cylinder"]
-    outer_radius: float
-    inner_radius: float
-    height: float
-
-
 class CylinderParameters(BaseModel):
     radius: float
     height: float
@@ -35,7 +28,6 @@ class OperationNode(BaseModel):
 
 
 DesignNode = Annotated[Union[PrimitiveNode, OperationNode], Field(discriminator="type")]
-SpecModel = Union[CadSpec, DesignNode]
 
 OperationNode.model_rebuild()
 
@@ -48,14 +40,14 @@ class ValidationResult(BaseModel):
 class PipelineSuccessResponse(BaseModel):
     stage: Literal["success"]
     engine: Literal["openscad"] = "openscad"
-    spec: SpecModel
+    spec: DesignNode
     scad: str
 
 
 class PipelineFailureResponse(BaseModel):
     stage: Literal["validation_failed"]
     errors: list[str]
-    spec: SpecModel
+    spec: DesignNode
 
 
 PipelineResponse = Union[PipelineSuccessResponse, PipelineFailureResponse]
