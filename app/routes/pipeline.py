@@ -2,7 +2,7 @@ from typing import Union
 
 from fastapi import APIRouter
 
-from app.core.generator import generate_scad
+from app.core.generator import DEFAULT_ENGINE, generate
 from app.core.parser import parse_prompt
 from app.core.validator import validate_spec
 from app.models.schema import (
@@ -26,5 +26,10 @@ def run_pipeline(prompt: PromptRequest) -> Union[PipelineSuccessResponse, Pipeli
             spec=spec,
         )
 
-    scad = generate_scad(spec)
-    return PipelineSuccessResponse(stage="success", spec=spec, scad=scad)
+    scad = generate(spec, engine=DEFAULT_ENGINE)
+    return PipelineSuccessResponse(
+        stage="success",
+        engine=DEFAULT_ENGINE,
+        spec=spec,
+        scad=scad,
+    )
