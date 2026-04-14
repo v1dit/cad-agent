@@ -1,5 +1,11 @@
 from app.core.adapters.base import CADAdapter
-from app.models.schema import OperationNode, PrimitiveNode, DesignNode
+from app.models.schema import (
+    CylinderParameters,
+    DesignNode,
+    OperationNode,
+    PrimitiveNode,
+    SphereParameters,
+)
 
 
 class OpenSCADAdapter(CADAdapter):
@@ -17,12 +23,18 @@ class OpenSCADAdapter(CADAdapter):
 
     def _render_primitive(self, spec: PrimitiveNode, indent: int) -> str:
         prefix = " " * indent
-        return (
-            f"{prefix}cylinder("
-            f"h={spec.parameters.height}, "
-            f"r={spec.parameters.radius}"
-            ");"
-        )
+        if spec.primitive == "cylinder" and isinstance(spec.parameters, CylinderParameters):
+            return (
+                f"{prefix}cylinder("
+                f"h={spec.parameters.height}, "
+                f"r={spec.parameters.radius}"
+                ");"
+            )
+
+        if spec.primitive == "sphere" and isinstance(spec.parameters, SphereParameters):
+            return f"{prefix}sphere(r={spec.parameters.radius});"
+
+        raise ValueError(f"unsupported primitive node: {spec.primitive}")
 
     def _render_operation(self, spec: OperationNode, indent: int) -> str:
         prefix = " " * indent
