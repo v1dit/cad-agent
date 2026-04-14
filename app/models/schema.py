@@ -2,28 +2,39 @@ from __future__ import annotations
 
 from typing import Annotated, Literal, Union
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 
 
-class PromptRequest(BaseModel):
+class StrictModel(BaseModel):
+    model_config = ConfigDict(extra="forbid")
+
+
+class PromptRequest(StrictModel):
     text: str
 
 
-class CylinderParameters(BaseModel):
+class CylinderParameters(StrictModel):
     radius: float
     height: float
 
 
-class PrimitiveNode(BaseModel):
+class SphereParameters(StrictModel):
+    radius: float
+
+
+PrimitiveParameters = Union[CylinderParameters, SphereParameters]
+
+
+class PrimitiveNode(StrictModel):
     type: Literal["primitive"]
-    primitive: Literal["cylinder"]
-    parameters: CylinderParameters
+    primitive: Literal["cylinder", "sphere"]
+    parameters: PrimitiveParameters
     operation: Literal["add"] = "add"
 
 
-class OperationNode(BaseModel):
+class OperationNode(StrictModel):
     type: Literal["operation"]
-    op: Literal["difference"]
+    op: Literal["difference", "union"]
     children: list["DesignNode"]
 
 
@@ -32,19 +43,19 @@ DesignNode = Annotated[Union[PrimitiveNode, OperationNode], Field(discriminator=
 OperationNode.model_rebuild()
 
 
-class ValidationResult(BaseModel):
+class ValidationResult(StrictModel):
     valid: bool
     errors: list[str]
 
 
-class PipelineSuccessResponse(BaseModel):
+class PipelineSuccessResponse(StrictModel):
     stage: Literal["success"]
     engine: Literal["openscad"] = "openscad"
     spec: DesignNode
     scad: str
 
 
-class PipelineFailureResponse(BaseModel):
+class PipelineFailureResponse(StrictModel):
     stage: Literal["validation_failed"]
     errors: list[str]
     spec: DesignNode
