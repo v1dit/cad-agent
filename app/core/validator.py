@@ -1,7 +1,9 @@
 from app.models.schema import (
+    CylinderParameters,
     DesignNode,
     OperationNode,
     PrimitiveNode,
+    SphereParameters,
     ValidationResult,
 )
 
@@ -25,25 +27,49 @@ def _validate_design_node(spec: DesignNode, errors: list[str]) -> None:
 
 
 def _validate_primitive(spec: PrimitiveNode, errors: list[str]) -> None:
-    if spec.parameters.radius <= 0:
-        errors.append("cylinder radius must be positive")
+    if spec.primitive == "cylinder":
+        if not isinstance(spec.parameters, CylinderParameters):
+            errors.append("cylinder primitives require radius and height parameters")
+            return
 
-    if spec.parameters.height <= 0:
-        errors.append("cylinder height must be positive")
+        if spec.parameters.radius <= 0:
+            errors.append("cylinder radius must be positive")
+
+        if spec.parameters.height <= 0:
+            errors.append("cylinder height must be positive")
+        return
+
+    if spec.primitive == "sphere":
+        if not isinstance(spec.parameters, SphereParameters):
+            errors.append("sphere primitives require a radius parameter")
+            return
+
+        if spec.parameters.radius <= 0:
+            errors.append("sphere radius must be positive")
+        return
+
+    errors.append(f"unsupported primitive: {spec.primitive}")
 
 
 def _validate_operation(spec: OperationNode, errors: list[str]) -> None:
     if spec.op == "difference" and len(spec.children) != 2:
         errors.append("difference operations must have exactly two children")
 
+    if spec.op == "union" and len(spec.children) < 2:
+        errors.append("union operations must have at least two children")
+
     for child in spec.children:
         _validate_design_node(child, errors)
 
-    if len(spec.children) != 2:
+    if spec.op != "difference" or len(spec.children) != 2:
         return
 
     left, right = spec.children
     if isinstance(left, PrimitiveNode) and isinstance(right, PrimitiveNode):
-        if left.primitive == right.primitive == "cylinder":
+        if (
+            left.primitive == right.primitive == "cylinder"
+            and isinstance(left.parameters, CylinderParameters)
+            and isinstance(right.parameters, CylinderParameters)
+        ):
             if right.parameters.radius >= left.parameters.radius:
                 errors.append("inner cylinder radius must be smaller than outer cylinder radius")
