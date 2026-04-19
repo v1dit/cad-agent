@@ -22,19 +22,25 @@ class SphereParameters(StrictModel):
     radius: float
 
 
-PrimitiveParameters = Union[CylinderParameters, SphereParameters]
+class CubeParameters(StrictModel):
+    width: float
+    depth: float
+    height: float
+
+
+PrimitiveParameters = Union[CylinderParameters, SphereParameters, CubeParameters]
 
 
 class PrimitiveNode(StrictModel):
     type: Literal["primitive"]
-    primitive: Literal["cylinder", "sphere"]
+    primitive: Literal["cylinder", "sphere", "cube"]
     parameters: PrimitiveParameters
     operation: Literal["add"] = "add"
 
 
 class OperationNode(StrictModel):
     type: Literal["operation"]
-    op: Literal["difference", "union"]
+    op: Literal["difference", "union", "intersection"]
     children: list["DesignNode"]
 
 
