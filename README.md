@@ -32,6 +32,8 @@ cad-agent/
 │   └── routes/
 │       └── pipeline.py
 ├── examples/
+│   ├── cube_prompt.txt
+│   ├── intersection_prompt.txt
 │   ├── sphere_prompt.txt
 │   ├── test_prompt.txt
 │   └── union_prompt.txt
@@ -67,6 +69,8 @@ python3 scripts/run_pipeline.py
 Run alternate deterministic demos:
 
 ```bash
+python3 scripts/run_pipeline.py examples/cube_prompt.txt
+python3 scripts/run_pipeline.py examples/intersection_prompt.txt
 python3 scripts/run_pipeline.py examples/sphere_prompt.txt
 python3 scripts/run_pipeline.py examples/union_prompt.txt
 ```
@@ -136,13 +140,15 @@ The current universal design spec supports two node types:
 
 The current milestone supports:
 
-- primitives: `cylinder`, `sphere`
-- operations: `difference`, `union`
+- primitives: `cylinder`, `sphere`, `cube`
+- operations: `difference`, `union`, `intersection`
 
 The placeholder parser currently recognizes a few deterministic demos:
 
 - prompts containing `sphere` -> sphere primitive
+- prompts containing `cube` -> cube primitive
 - prompts containing `union` -> nested union demo
+- prompts containing `intersection` -> cube/sphere intersection demo
 - all other prompts -> hollow cylinder difference tree
 
 The default prompt resolves to this shape:
@@ -162,6 +168,15 @@ union(
     cylinder(radius=5, height=10),
     cylinder(radius=3, height=10)
   ),
+  sphere(radius=4)
+)
+```
+
+An intersection demo resolves to:
+
+```text
+intersection(
+  cube(width=6, depth=6, height=6),
   sphere(radius=4)
 )
 ```
