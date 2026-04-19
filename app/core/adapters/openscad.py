@@ -1,5 +1,6 @@
 from app.core.adapters.base import CADAdapter
 from app.models.schema import (
+    CubeParameters,
     CylinderParameters,
     DesignNode,
     OperationNode,
@@ -33,6 +34,13 @@ class OpenSCADAdapter(CADAdapter):
 
         if spec.primitive == "sphere" and isinstance(spec.parameters, SphereParameters):
             return f"{prefix}sphere(r={spec.parameters.radius});"
+
+        if spec.primitive == "cube" and isinstance(spec.parameters, CubeParameters):
+            return (
+                f"{prefix}cube("
+                f"size=[{spec.parameters.width}, {spec.parameters.depth}, {spec.parameters.height}]"
+                ");"
+            )
 
         raise ValueError(f"unsupported primitive node: {spec.primitive}")
 
