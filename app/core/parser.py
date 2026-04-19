@@ -1,4 +1,5 @@
 from app.models.schema import (
+    CubeParameters,
     CylinderParameters,
     DesignNode,
     OperationNode,
@@ -11,8 +12,18 @@ def parse_prompt(text: str) -> DesignNode:
     # TODO: Replace this deterministic placeholder with an LLM-backed parser.
     lowered = text.lower()
 
+    if "intersection" in lowered:
+        return _build_intersection_demo()
+
     if "union" in lowered:
         return _build_union_demo()
+
+    if "cube" in lowered:
+        return PrimitiveNode(
+            type="primitive",
+            primitive="cube",
+            parameters=CubeParameters(width=6, depth=6, height=6),
+        )
 
     if "sphere" in lowered:
         return PrimitiveNode(
@@ -49,3 +60,17 @@ def _build_union_demo() -> OperationNode:
         op="union",
         children=[_build_hollow_cylinder(), sphere],
     )
+
+
+def _build_intersection_demo() -> OperationNode:
+    cube = PrimitiveNode(
+        type="primitive",
+        primitive="cube",
+        parameters=CubeParameters(width=6, depth=6, height=6),
+    )
+    sphere = PrimitiveNode(
+        type="primitive",
+        primitive="sphere",
+        parameters=SphereParameters(radius=4),
+    )
+    return OperationNode(type="operation", op="intersection", children=[cube, sphere])
