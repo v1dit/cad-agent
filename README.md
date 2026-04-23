@@ -1,11 +1,11 @@
 # cad-agent
 
-`cad-agent` is a minimal deterministic pipeline that turns natural language into a validated, engine-agnostic CAD specification before generating OpenSCAD output through an adapter layer.
+`cad-agent` is a deterministic geometry compiler skeleton that turns natural language into a validated, engine-agnostic CAD specification before generating and optionally executing OpenSCAD through an adapter layer.
 
 This first version is intentionally small and structural. It models the core architecture:
 
 ```text
-text -> parse -> validate -> adapter -> return scad
+text -> parse -> normalize -> validate -> adapter -> code -> optional execution
 ```
 
 The parser is currently a placeholder and maps a few fixed prompt patterns into deterministic design trees. That keeps the current version predictable while preserving the boundaries needed for future LLM parsing, correction loops, and backend execution.
@@ -13,6 +13,16 @@ The parser is currently a placeholder and maps a few fixed prompt patterns into 
 ## Why this project
 
 Most AI CAD flows go straight from prompt to generated code. This project introduces a constraint-aware pipeline so geometry is structured, validated, and then translated into engine-specific output through adapters.
+
+## IR Contract
+
+The IR language for this project is documented in [docs/IR_SPEC.md](docs/IR_SPEC.md). That document defines:
+
+- supported node kinds
+- primitives and operations
+- units and coordinate conventions
+- normalization rules
+- structural and semantic invariants
 
 ## Project Layout
 
@@ -23,14 +33,19 @@ cad-agent/
 │   ├── core/
 │   │   ├── adapters/
 │   │   │   ├── base.py
+│   │   │   ├── registry.py
 │   │   │   └── openscad.py
+│   │   ├── executor.py
 │   │   ├── generator.py
+│   │   ├── normalize.py
 │   │   ├── parser.py
 │   │   └── validator.py
 │   ├── models/
 │   │   └── schema.py
 │   └── routes/
 │       └── pipeline.py
+├── docs/
+│   └── IR_SPEC.md
 ├── examples/
 │   ├── cube_prompt.txt
 │   ├── intersection_prompt.txt
@@ -75,11 +90,19 @@ python3 scripts/run_pipeline.py examples/sphere_prompt.txt
 python3 scripts/run_pipeline.py examples/union_prompt.txt
 ```
 
+Generate code and attempt execution:
+
+```bash
+python3 scripts/run_pipeline.py --execute examples/sphere_prompt.txt
+```
+
 Run the test suite:
 
 ```bash
 python3 -m unittest discover -s tests
 ```
+
+Execution requires the `openscad` CLI to be installed and available on `PATH`.
 
 ## API
 
@@ -97,7 +120,15 @@ curl -X POST http://127.0.0.1:8000/run \
   -d '{"text":"make a hollow cylinder"}'
 ```
 
-Expected response shape:
+Pipeline request that also attempts execution:
+
+```bash
+curl -X POST http://127.0.0.1:8000/run \
+  -H "Content-Type: application/json" \
+  -d '{"text":"make a sphere","execute":true}'
+```
+
+Expected success response shape:
 
 ```json
 {
@@ -127,7 +158,35 @@ Expected response shape:
       }
     ]
   },
-  "scad": "difference() {\n    cylinder(h=10.0, r=5.0);\n    cylinder(h=10.0, r=3.0);\n}"
+  "output": {
+    "type": "scad",
+    "code": "difference() {\n    cylinder(h=10.0, r=5.0);\n    cylinder(h=10.0, r=3.0);\n}"
+  },
+  "artifact": null
+}
+```
+
+Expected execution failure shape when `openscad` is unavailable:
+
+```json
+{
+  "stage": "execution_failed",
+  "engine": "openscad",
+  "errors": [
+    "openscad executable not found in PATH"
+  ],
+  "spec": {
+    "type": "primitive",
+    "primitive": "sphere",
+    "parameters": {
+      "radius": 4.0
+    },
+    "operation": "add"
+  },
+  "output": {
+    "type": "scad",
+    "code": "sphere(r=4.0);"
+  }
 }
 ```
 
@@ -142,6 +201,14 @@ The current milestone supports:
 
 - primitives: `cylinder`, `sphere`, `cube`
 - operations: `difference`, `union`, `intersection`
+
+Every request follows the same compiler stages:
+
+- parse a deterministic demo tree
+- normalize the IR
+- validate structural and semantic invariants
+- generate backend code
+- optionally execute through the adapter
 
 The placeholder parser currently recognizes a few deterministic demos:
 
@@ -187,7 +254,7 @@ OpenSCAD is the only backend today, but it is now isolated behind an adapter ins
 
 - No LLM parser yet
 - No correction loop
-- No CAD engine execution
+- Only one backend adapter is implemented
 - No multi-agent orchestration
 - No transforms, assemblies, or engine selection yet
 
@@ -195,5 +262,6 @@ OpenSCAD is the only backend today, but it is now isolated behind an adapter ins
 
 - Replace the parser with structured LLM output
 - Add more primitives and boolean operations carefully
+- Add more execution-capable backends
 - Introduce a correction loop
-- Add OpenSCAD execution and more backends
+- Expand normalization and semantic constraints
