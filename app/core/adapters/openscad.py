@@ -1,4 +1,5 @@
 from app.core.adapters.base import CADAdapter
+from app.core.executor import run_openscad
 from app.models.schema import (
     CubeParameters,
     CylinderParameters,
@@ -10,8 +11,13 @@ from app.models.schema import (
 
 
 class OpenSCADAdapter(CADAdapter):
+    name = "openscad"
+
     def generate(self, spec: DesignNode) -> str:
         return self._render_node(spec)
+
+    def execute(self, code: str, out_path: str | None = None) -> dict[str, str]:
+        return run_openscad(code, out_path=out_path)
 
     def _render_node(self, spec: DesignNode, indent: int = 0) -> str:
         if isinstance(spec, PrimitiveNode):
