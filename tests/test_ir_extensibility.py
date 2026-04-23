@@ -258,7 +258,9 @@ class IRExtensibilityTests(unittest.TestCase):
         body = response.json()
         self.assertEqual(body["engine"], "openscad")
         self.assertEqual(body["spec"]["primitive"], "sphere")
-        self.assertEqual(body["scad"], "sphere(r=4.0);")
+        self.assertEqual(body["output"]["type"], "scad")
+        self.assertEqual(body["output"]["code"], "sphere(r=4.0);")
+        self.assertIsNone(body["artifact"])
 
     def test_api_returns_cube_demo(self) -> None:
         client = TestClient(app)
@@ -268,7 +270,9 @@ class IRExtensibilityTests(unittest.TestCase):
         body = response.json()
         self.assertEqual(body["engine"], "openscad")
         self.assertEqual(body["spec"]["primitive"], "cube")
-        self.assertEqual(body["scad"], "cube(size=[6.0, 6.0, 6.0]);")
+        self.assertEqual(body["output"]["type"], "scad")
+        self.assertEqual(body["output"]["code"], "cube(size=[6.0, 6.0, 6.0]);")
+        self.assertIsNone(body["artifact"])
 
     def test_api_returns_union_demo(self) -> None:
         client = TestClient(app)
@@ -278,8 +282,9 @@ class IRExtensibilityTests(unittest.TestCase):
         body = response.json()
         self.assertEqual(body["engine"], "openscad")
         self.assertEqual(body["spec"]["op"], "union")
-        self.assertIn("difference()", body["scad"])
-        self.assertIn("sphere(r=4.0);", body["scad"])
+        self.assertIn("difference()", body["output"]["code"])
+        self.assertIn("sphere(r=4.0);", body["output"]["code"])
+        self.assertIsNone(body["artifact"])
 
     def test_api_returns_intersection_demo(self) -> None:
         client = TestClient(app)
@@ -289,8 +294,9 @@ class IRExtensibilityTests(unittest.TestCase):
         body = response.json()
         self.assertEqual(body["engine"], "openscad")
         self.assertEqual(body["spec"]["op"], "intersection")
-        self.assertIn("cube(size=[6.0, 6.0, 6.0]);", body["scad"])
-        self.assertIn("sphere(r=4.0);", body["scad"])
+        self.assertIn("cube(size=[6.0, 6.0, 6.0]);", body["output"]["code"])
+        self.assertIn("sphere(r=4.0);", body["output"]["code"])
+        self.assertIsNone(body["artifact"])
 
     def test_cli_runs_sphere_prompt_file(self) -> None:
         result = subprocess.run(
