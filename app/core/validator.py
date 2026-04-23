@@ -68,8 +68,8 @@ def _validate_primitive(spec: PrimitiveNode, errors: list[str]) -> None:
 
 
 def _validate_operation(spec: OperationNode, errors: list[str]) -> None:
-    if spec.op == "difference" and len(spec.children) != 2:
-        errors.append("difference operations must have exactly two children")
+    if spec.op == "difference" and len(spec.children) < 2:
+        errors.append("difference operations must have at least two children")
 
     if spec.op == "union" and len(spec.children) < 2:
         errors.append("union operations must have at least two children")
@@ -80,15 +80,22 @@ def _validate_operation(spec: OperationNode, errors: list[str]) -> None:
     for child in spec.children:
         _validate_design_node(child, errors)
 
-    if spec.op != "difference" or len(spec.children) != 2:
+    if spec.op != "difference" or len(spec.children) < 2:
         return
 
-    left, right = spec.children
-    if isinstance(left, PrimitiveNode) and isinstance(right, PrimitiveNode):
-        if (
-            left.primitive == right.primitive == "cylinder"
-            and isinstance(left.parameters, CylinderParameters)
-            and isinstance(right.parameters, CylinderParameters)
-        ):
-            if right.parameters.radius >= left.parameters.radius:
-                errors.append("inner cylinder radius must be smaller than outer cylinder radius")
+    base, *subtractors = spec.children
+    if not isinstance(base, PrimitiveNode):
+        return
+
+    if base.primitive != "cylinder" or not isinstance(base.parameters, CylinderParameters):
+        return
+
+    for subtractor in subtractors:
+        if not isinstance(subtractor, PrimitiveNode):
+            continue
+
+        if subtractor.primitive != "cylinder" or not isinstance(subtractor.parameters, CylinderParameters):
+            continue
+
+        if subtractor.parameters.radius >= base.parameters.radius:
+            errors.append("inner cylinder radius must be smaller than outer cylinder radius")
