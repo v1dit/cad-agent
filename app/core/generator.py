@@ -1,15 +1,14 @@
-from app.core.adapters.openscad import OpenSCADAdapter
+from app.core.adapters.registry import DEFAULT_ENGINE, get_adapter
 from app.models.schema import DesignNode
-
-DEFAULT_ENGINE = "openscad"
 
 
 def generate(spec: DesignNode, engine: str = DEFAULT_ENGINE) -> str:
-    if engine == DEFAULT_ENGINE:
-        return OpenSCADAdapter().generate(spec)
-
-    raise ValueError(f"unsupported engine: {engine}")
+    return get_adapter(engine).generate(spec)
 
 
 def generate_scad(spec: DesignNode) -> str:
     return generate(spec, engine=DEFAULT_ENGINE)
+
+
+def execute_generated(code: str, engine: str = DEFAULT_ENGINE, out_path: str | None = None) -> dict[str, str]:
+    return get_adapter(engine).execute(code, out_path=out_path)
