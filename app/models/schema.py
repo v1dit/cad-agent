@@ -106,6 +106,6 @@ PipelineResponse = Union[
 
 def _validate_numeric_input(value: object) -> object:
     if isinstance(value, bool) or not isinstance(value, (int, float)):
-        raise TypeError("numeric parameters must be numbers")
+        raise ValueError("numeric parameters must be numbers")
 
     return value
