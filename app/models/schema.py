@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import Annotated, Literal, Union
 
-from pydantic import BaseModel, ConfigDict, Field
+from pydantic import BaseModel, ConfigDict, Field, field_validator
 
 
 class StrictModel(BaseModel):
@@ -11,21 +11,37 @@ class StrictModel(BaseModel):
 
 class PromptRequest(StrictModel):
     text: str
+    execute: bool = False
 
 
 class CylinderParameters(StrictModel):
     radius: float
     height: float
 
+    @field_validator("radius", "height", mode="before")
+    @classmethod
+    def validate_numeric(cls, value: object) -> object:
+        return _validate_numeric_input(value)
+
 
 class SphereParameters(StrictModel):
     radius: float
+
+    @field_validator("radius", mode="before")
+    @classmethod
+    def validate_numeric(cls, value: object) -> object:
+        return _validate_numeric_input(value)
 
 
 class CubeParameters(StrictModel):
     width: float
     depth: float
     height: float
+
+    @field_validator("width", "depth", "height", mode="before")
+    @classmethod
+    def validate_numeric(cls, value: object) -> object:
+        return _validate_numeric_input(value)
 
 
 PrimitiveParameters = Union[CylinderParameters, SphereParameters, CubeParameters]
@@ -54,17 +70,42 @@ class ValidationResult(StrictModel):
     errors: list[str]
 
 
+class OutputPayload(StrictModel):
+    type: Literal["scad"] = "scad"
+    code: str
+
+
 class PipelineSuccessResponse(StrictModel):
     stage: Literal["success"]
     engine: Literal["openscad"] = "openscad"
     spec: DesignNode
-    scad: str
+    output: OutputPayload
+    artifact: str | None = None
 
 
-class PipelineFailureResponse(StrictModel):
+class PipelineValidationFailureResponse(StrictModel):
     stage: Literal["validation_failed"]
     errors: list[str]
     spec: DesignNode
 
 
-PipelineResponse = Union[PipelineSuccessResponse, PipelineFailureResponse]
+class PipelineExecutionFailureResponse(StrictModel):
+    stage: Literal["execution_failed"]
+    engine: Literal["openscad"] = "openscad"
+    errors: list[str]
+    spec: DesignNode
+    output: OutputPayload
+
+
+PipelineResponse = Union[
+    PipelineSuccessResponse,
+    PipelineValidationFailureResponse,
+    PipelineExecutionFailureResponse,
+]
+
+
+def _validate_numeric_input(value: object) -> object:
+    if isinstance(value, bool) or not isinstance(value, (int, float)):
+        raise TypeError("numeric parameters must be numbers")
+
+    return value
